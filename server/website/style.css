@@ -2,6 +2,7 @@ html, body {
 	margin:0 0 0 0;
 	background-color:#FFC127;
 	max-height:99%;
+	color:#101010;
 }
 
 body {
@@ -21,13 +22,13 @@ body {
 
 a:link, a:visited, a:hover, a:active {
 	text-decoration:none;
-	color:#101040;
+	color:#101010;
 }
 
 #main {
 	background-color:#FEFEFE;
 	margin:8 8 8 8;
-	padding:8 8 8 8;
+	padding:16 16 16 16;
 	min-width:1px;
 	font-family:Arial, Helvetica, sans-serif;
 	font-size:18px;
@@ -35,4 +36,9 @@ a:link, a:visited, a:hover, a:active {
 
 .title {
 	font-size:30px;
+}
+
+.error {
+	font-size:20px;
+	color:#E01010;
 }

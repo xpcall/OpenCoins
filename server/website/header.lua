@@ -1,10 +1,17 @@
-local links={
-	{"Login","/opencoins/login.lua"},
-	{"Register","/opencoins/register.lua"},
-	{"Home","/opencoins/index.lua"},
-	{"GitHub","https://github.com/P-T-/OpenCoins"},
-}
+user=dofile("www/opencoins/auth.lua")
+assert(auth)
 return function(cur)
+	local links={
+		{"Home","/opencoins/index.lua"},
+		{"GitHub","https://github.com/P-T-/OpenCoins"},
+	}
+	if user then
+		table.insert(links,1,{"User CP","/opencoins/usercp.lua"})
+		table.insert(links,1,{"Logout","/opencoins/logout.lua"})
+	else
+		table.insert(links,1,{"Register","/opencoins/register.lua"})
+		table.insert(links,1,{"Login","/opencoins/login.lua"})
+	end
 	local ot={}
 	for k,v in pairs(links) do
 		if v[1]~=cur then
