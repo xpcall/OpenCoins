@@ -4,6 +4,7 @@
 	
 	Uses apis:
 		hook
+		webserv
 		sql
 		crypt
 	
@@ -57,26 +58,26 @@
 ]]
 
 reqplugin("sql.lua")
-opencoins={}
 local db=sql.new("opencoins")
+opencoins={db=db}
 local tokens=db.new("tokens","id","worth","revert","creator")
 local users=db.new("users","username","name","ip","password","coins")
 
 function opencoins.newUser(username,name,password,ip)
 	if not username:match("^%a[%w_%-~]*$") then
-		return false,"invalid username"
+		return false,"Invalid username"
 	end
 	if not username:match("^%a[%s%w_%-~]*$") or username:match("%s$") then
-		return false,"invalid name"
+		return false,"Invalid name"
 	end
 	if opencoins.user({username=username}) then
-		return false,"username already used"
+		return false,"Username already used"
 	end
 	if opencoins.user({name=name}) then
-		return false,"name already used"
+		return false,"Name already used"
 	end
 	if #password<6 then
-		return false,"password too short"
+		return false,"Password too short"
 	end
 	local salt=crypt.salt(32)
 	users.insert({
@@ -89,25 +90,18 @@ function opencoins.newUser(username,name,password,ip)
 	return true
 end
 
-hook.new("page_opencoins/api_newuser.lua",function(cl)
-	local dat=cl.postdata or cl.urldata or {}
-	for k,v in pairs({"username","name","password"}) do
-		if not dat[v] then
-			return {type="text/plain",data='{"error","missing '..v..' field"}'}
-		end
-	end
-	local res,err=opencoins.newUser(dat.username,dat.name,dat.password,cl.ip)
-	return {type="text/plain",data=not res and '{"error","'..err..'"}' or '{"success"}'}
+hook.new({"command_opencoins","command_coins"},function()
+	
 end)
 
 hook.new("page_opencoins/api_getinfo.lua",function(cl)
 	local dat=cl.postdata or cl.urldata or {}
 	if not dat.username and not dat.name then
-		return {type="text/plain",data='{"error","missing name or username field"}'}
+		return {type="text/plain",data='{"error","Missing name or username field"}'}
 	end
 	local user=opencoins.user({username=dat.username,name=dat.name})
 	if not user then
-		return {type="text/plain",data='{"error","no such user"}'}
+		return {type="text/plain",data='{"error","No such user"}'}
 	end
 	local tuser={}
 	for k,v in pairs({"username","name","coins"}) do
@@ -116,8 +110,16 @@ hook.new("page_opencoins/api_getinfo.lua",function(cl)
 	return {type="text/plain",data=serialize({"success",tuser})}
 end)
 
+local tusers=setmetatable({},{__mode="v"})
+
 function opencoins.user(mt)
+	if type(mt)~="table" then
+		mt={username=mt}
+	end
 	local user=users.select(mt)
+	if tusers[user.username] then
+		return tusers[user.username]
+	end
 	if user then
 		user.update=function(...)
 			local p={...}
@@ -128,6 +130,7 @@ function opencoins.user(mt)
 			users.update({username=user.username},vl)
 		end
 	end
+	tusers[user.username]=user
 	return user
 end
 
@@ -139,14 +142,14 @@ hook.new("page_opencoins/api_auth.lua",function(cl)
 	local dat=cl.postdata or cl.urldata or {}
 	for k,v in pairs({"username","password"}) do
 		if not dat[v] then
-			return {type="text/plain",data='{"error","missing '..v..' field"}'}
+			return {type="text/plain",data='{"error","Nissing '..v..' field"}'}
 		end
 	end
 	local user=opencoins.user({username=dat.username})
 	if not user then
-		return {type="text/plain",data='{"error","no such user"}'}
+		return {type="text/plain",data='{"error","No such user"}'}
 	end
-	return {type="text/plain",data=opencoins.auth(user,dat.password) and '{"success"}' or '{"error","bad password"}'}
+	return {type="text/plain",data=opencoins.auth(user,dat.password) and '{"success"}' or '{"error","Bad password"}'}
 end)
 
 function opencoins.addCoins(user,amt)
@@ -154,18 +157,23 @@ function opencoins.addCoins(user,amt)
 	user.update("coins")
 end
 
-function opencoins.newToken(worth,revert,user)
+function opencoins.newToken(worth,revert,user,force)
 	worth=tonumber(worth) or 0
-	if worth<1 or math.floor(worth)~=worth then
-		return false,"worth must be a integer greater than zero"
+	if not force and (worth<1 or math.floor(worth)~=worth) then
+		return false,"Worth must be a integer greater than zero"
+	elseif not force and user.coins<worth then
+		return false,"Not enough coins"
 	end
-	local token=crypt.tohex(crypt.salt(32))
+	local token=tob64(crypt.salt(32)):gsub("=","")..":"..worth
 	tokens.insert({
 		id=token,
 		worth=worth,
 		revert=revert or "",
 		creator=(user or {}).username or "",
 	})
+	if user then
+		opencoins.addCoins(user,-tonumber(worth))
+	end
 	return token
 end
 
@@ -173,29 +181,26 @@ hook.new("page_opencoins/api_newtoken.lua",function(cl)
 	local dat=cl.postdata or cl.urldata or {}
 	for k,v in pairs({"username","password","worth"}) do
 		if not dat[v] then
-			return {type="text/plain",data='{"error","missing '..v..' field"}'}
+			return {type="text/plain",data='{"error","Missing '..v..' field"}'}
 		end
 	end
 	local user=opencoins.user({username=dat.username})
 	if not user then
-		return {type="text/plain",data='{"error","no such user"}'}
+		return {type="text/plain",data='{"error","No such user"}'}
 	elseif not opencoins.auth(user,dat.password) then
-		return {type="text/plain",data='{"error","bad password"}'}
-	elseif user.coins<(tonumber(dat.worth) or 0) then
-		return {type="text/plain",data='{"error","not enough coins"}'}
+		return {type="text/plain",data='{"error","Bad password"}'}
 	end
 	local token,err=opencoins.newToken(dat.worth,dat.revert,user)
 	if not token then
 		return {type="text/plain",data='{"error","'..err..'"}'}
 	end
-	opencoins.addCoins(user,-tonumber(dat.worth))
 	return {type="text/plain",data=serialize({"success",token})}
 end)
 
 function opencoins.useToken(tk,user)
 	local token=tokens.select({id=tk})
 	if not token then
-		return false,"invalid token id"
+		return false,"Invalid token id"
 	end
 	user.coins=user.coins+token.worth
 	user.update("coins")
@@ -207,14 +212,14 @@ hook.new("page_opencoins/api_usetoken.lua",function(cl)
 	local dat=cl.postdata or cl.urldata or {}
 	for k,v in pairs({"username","password","token"}) do
 		if not dat[v] then
-			return {type="text/plain",data='{"error","missing '..v..' field"}'}
+			return {type="text/plain",data='{"error","Missing '..v..' field"}'}
 		end
 	end
 	local user=opencoins.user({username=dat.username})
 	if not user then
-		return {type="text/plain",data='{"error","no such user"}'}
+		return {type="text/plain",data='{"error","No such user"}'}
 	elseif not opencoins.auth(user,dat.password) then
-		return {type="text/plain",data='{"error","bad password"}'}
+		return {type="text/plain",data='{"error","Bad password"}'}
 	end
 	local worth,err=opencoins.useToken(dat.token,user)
 	if not worth then
@@ -240,16 +245,16 @@ hook.new("page_opencoins/api_reverttoken.lua",function(cl)
 	local dat=cl.postdata or cl.urldata or {}
 	for k,v in pairs({"username","password","revert"}) do
 		if not dat[v] then
-			return {type="text/plain",data='{"error","missing '..v..' field"}'}
+			return {type="text/plain",data='{"error","Missing '..v..' field"}'}
 		end
 	end
 	local user=opencoins.user({username=dat.username})
 	if not user then
-		return {type="text/plain",data='{"error","no such user"}'}
+		return {type="text/plain",data='{"error","No such user"}'}
 	elseif not opencoins.auth(user,dat.password) then
-		return {type="text/plain",data='{"error","bad password"}'}
+		return {type="text/plain",data='{"error","Bad password"}'}
 	elseif dat.revert=="" then
-		return {type="text/plain",data='{"error","revert cant be blank"}'}
+		return {type="text/plain",data='{"error","Revert cant be blank"}'}
 	end
 	local out=opencoins.revertTokens(dat.revert,user)
 	return {type="text/plain",data=serialize({"success",out})}
@@ -268,20 +273,20 @@ hook.new("page_opencoins/api_deleteuser.lua",function(cl)
 	local dat=cl.postdata or cl.urldata or {}
 	for k,v in pairs({"username","password"}) do
 		if not dat[v] then
-			return {type="text/plain",data='{"error","missing '..v..' field"}'}
+			return {type="text/plain",data='{"error","Missing '..v..' field"}'}
 		end
 	end
 	local user=opencoins.user({username=dat.username})
 	if not user then
-		return {type="text/plain",data='{"error","no such user"}'}
+		return {type="text/plain",data='{"error","No such user"}'}
 	elseif not opencoins.auth(user,dat.password) then
-		return {type="text/plain",data='{"error","bad password"}'}
+		return {type="text/plain",data='{"error","Bad password"}'}
 	end
 	local tuser
 	if dat.transferto then
 		tuser=opencoins.user({username=dat.transferto})
 		if not tuser then
-			return {type="text/plain",data='{"error","no such transferto user"}'}
+			return {type="text/plain",data='{"error","No such transferto user"}'}
 		end
 	end
 	local res,err=opencoins.deleteUser(user,tuser)

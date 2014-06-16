@@ -27,10 +27,10 @@ if next(dat or {}) then
 end
 dat=dat or {}
 print([[
-			<form method="post" action="login.lua">
-				<p>Username: <input type="text" name="username" value="]]..htmlencode(dat.username or "")..[["/></p>
-				<p>Password: <input type="password" name="password" value="]]..htmlencode(dat.password or "")..[["/></p>
-				<input type="submit" value="Submit">
-			</form>
+			<form method="post" action="login.lua"><table>
+				<tr><td>Username: </td><td><input type="text" name="username" value="]]..htmlencode(dat.username or "")..[["/></td></tr>
+				<tr><td>Password: </td><td><input type="password" name="password" value="]]..htmlencode(dat.password or "")..[["/></td></tr>
+				<tr><td><input type="submit" value="Submit"></td></tr>
+			</form></table>
 ]])
 print(dofile("www/opencoins/footer.lua"))

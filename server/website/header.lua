@@ -9,7 +9,6 @@ return function(cur)
 		table.insert(links,1,{"User CP","/opencoins/usercp.lua"})
 		table.insert(links,1,{"Logout","/opencoins/logout.lua"})
 	else
-		table.insert(links,1,{"Register","/opencoins/register.lua"})
 		table.insert(links,1,{"Login","/opencoins/login.lua"})
 	end
 	local ot={}
@@ -33,7 +32,7 @@ return function(cur)
 ]]..table.concat(ot,"&nbsp;&nbsp;&nbsp;\n")..[[
 		</div>
 		<div id="main">
-			<center><div class="title">]]..cur..[[</div></center><br>
+			<div class="title">]]..cur..[[</div><br>
 ]]
 end
 
