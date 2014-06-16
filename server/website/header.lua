@@ -6,7 +6,7 @@ return function(cur)
 		{"GitHub","https://github.com/P-T-/OpenCoins"},
 	}
 	if user then
-		table.insert(links,1,{"User CP","/opencoins/usercp.lua"})
+		table.insert(links,1,{"Coins","/opencoins/coins.lua"})
 		table.insert(links,1,{"Logout","/opencoins/logout.lua"})
 	else
 		table.insert(links,1,{"Login","/opencoins/login.lua"})

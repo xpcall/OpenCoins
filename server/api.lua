@@ -55,6 +55,17 @@
 			returns table of token ids reverted
 		api_deleteuser.lua?username=pixel&password=123456[&transferto=ping]
 			deletes user, if transferto is specified it will transfer all the coins to that user
+			
+	Crypto:
+		random numbers are generated using OpenSSL, not math.random
+		
+		passwords are stored as: hex(salt..sha256(salt..password))
+		32 byte salt (2^256 combinations)
+		
+		no signing on user info (sql injection could allow a increase in coins)
+		
+		tokens are stored as: b64(salt)..":"..worth
+		=s in b64 output are removed
 ]]
 
 reqplugin("sql.lua")
@@ -117,18 +128,19 @@ function opencoins.user(mt)
 		mt={username=mt}
 	end
 	local user=users.select(mt)
+	if not user then
+		return
+	end
 	if tusers[user.username] then
 		return tusers[user.username]
 	end
-	if user then
-		user.update=function(...)
-			local p={...}
-			local vl={}
-			for k,v in pairs(p) do
-				vl[v]=user[v]
-			end
-			users.update({username=user.username},vl)
+	user.update=function(...)
+		local p={...}
+		local vl={}
+		for k,v in pairs(p) do
+			vl[v]=user[v]
 		end
+		users.update({username=user.username},vl)
 	end
 	tusers[user.username]=user
 	return user

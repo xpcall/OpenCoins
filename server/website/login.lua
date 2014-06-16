@@ -17,7 +17,7 @@ if next(dat or {}) then
 		else
 			if opencoins.auth(user,dat.password) then
 				res.headers["Set-Cookie"]=dat.username..":"..dat.password
-				res.headers["Location"]="http://"..(cl.headers["Host"] or "pt.ptoast.tk").."/opencoins/usercp.lua"
+				res.headers["Location"]="http://"..(cl.headers["Host"] or "pt.ptoast.tk").."/opencoins/coins.lua"
 				res.code="302 Found"
 			else
 				print('\t\t\t<iframe width="186" height="105" src="//www.youtube.com/embed/gvdf5n-zI14?autoplay=1" frameborder="0" allowfullscreen></iframe>')

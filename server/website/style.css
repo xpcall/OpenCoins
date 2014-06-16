@@ -1,6 +1,6 @@
 html, body {
 	margin:0 0 0 0;
-	background-color:#FFC127;
+	background-color:#101010;
 	max-height:99%;
 	color:#101010;
 }
@@ -10,7 +10,7 @@ body {
 }
 
 #logo {
-	background-color:#FEFEFE;
+	background-color:#EFEFEF;
 	margin-top:8;
 	padding-top:8;
 	padding-bottom:8;
@@ -26,7 +26,7 @@ a:link, a:visited, a:hover, a:active {
 }
 
 #main {
-	background-color:#FEFEFE;
+	background-color:#EFEFEF;
 	margin:8 8 8 8;
 	padding:16 16 16 16;
 	min-width:1px;
@@ -47,4 +47,17 @@ a:link, a:visited, a:hover, a:active {
 .error {
 	font-size:18px;
 	color:#E01010;
+}
+
+.success {
+	font-size:18px;
+	color:#10E010;
+}
+
+red {
+	color:#E01010;
+}
+
+green {
+	color:#10E010;
 }
